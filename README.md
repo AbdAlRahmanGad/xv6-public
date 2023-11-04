@@ -3,11 +3,12 @@
 This repository contains the projects I have done on xv6 as a part of OSTEP,
 See their [git](https://github.com/remzi-arpacidusseau/ostep-projects) for more information.
 ## Tasks progress
-- p1b_1 (adding a system call that returns how many times that the read() system call has been called by user processes since the time that the kernel was booted) [commit link](https://github.com/mit-pdos/xv6-public/commit/95e70fd1429c72c92c64025bc13f74725f3ea164)
+- p1b_1 (adding a system call that returns how many times that the read() system call has been called by user processes since the time that the kernel was booted) [commit link](https://github.com/mit-pdos/xv6-public/commit/95e70fd1429c72c92c64025bc13f74725f3ea164).<br><br>
+- p1b_2 (add lock to make the counter thread-safe) [commit link](https://github.com/mit-pdos/xv6-public/commit/e97c8d06e9adf15059e13a4f758e08c3d3b6699c).
 
-test file name: test_1_p1b.c <br><br>
+test files names: test_1_p1b.c test_2_p1b.c <br><br>
 note: I added the file to the MakeFile to make it easy to test, 
-so all you have to do is build the xv6 and inside of it type test_1_p1b.
+so all you have to do is build the xv6 and inside of it type test_1_p1b or test_2_p1b.c, etc.
 ### About XV6
 
 xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
