@@ -102,9 +102,20 @@ trap(struct trapframe *tf)
 
   // Force process to give up CPU on clock tick.
   // If interrupts were on while locks held, would need to check nlock.
-  if(myproc() && myproc()->state == RUNNING &&
-     tf->trapno == T_IRQ0+IRQ_TIMER)
-    yield();
+  if (myproc() && myproc()->state == RUNNING &&
+      tf->trapno == T_IRQ0 + IRQ_TIMER) {
+    myproc()->ticketsleft--;
+    cprintf("\n\tafter myproc()->ticketsleft-- name : %s pid: %d total "
+            "tickets: %d tickets left %d \n",
+            myproc()->name, myproc()->pid, myproc()->tickets,
+            myproc()->ticketsleft);
+    if (myproc()->ticketsleft <= 0) {
+      myproc()->ticketsleft = myproc()->tickets;
+      cprintf("\n\tpname: %s pid: %d yield done\n", myproc()->name,
+              myproc()->pid);
+      yield();
+    }
+  }
 
   // Check if the process has been killed since we yielded
   if(myproc() && myproc()->killed && (tf->cs&3) == DPL_USER)

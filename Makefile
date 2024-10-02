@@ -157,7 +157,7 @@ _forktest: forktest.o $(ULIB)
 	$(OBJDUMP) -S _forktest > forktest.asm
 
 mkfs: mkfs.c fs.h
-	gcc -Werror -Wall -o mkfs mkfs.c
+	gcc -Wall -o mkfs mkfs.c
 
 # Prevent deletion of intermediate files, e.g. cat.o, after first build, so
 # that disk image changes after first build are persistent until clean.  More
@@ -177,6 +177,8 @@ UPROGS=\
 	_mkdir\
 	_test_1_p1b\
 	_test_2_p1b\
+	_sched_test\
+	_ps\
 	_rm\
 	_sh\
 	_stressfs\
@@ -184,8 +186,8 @@ UPROGS=\
 	_wc\
 	_zombie\
 
-fs.img: mkfs README $(UPROGS)
-	./mkfs fs.img README $(UPROGS)
+fs.img: mkfs $(UPROGS)
+	./mkfs fs.img $(UPROGS)
 
 -include *.d
 
@@ -252,7 +254,7 @@ qemu-nox-gdb: fs.img xv6.img .gdbinit
 EXTRA=\
 	mkfs.c ulib.c user.h cat.c echo.c forktest.c grep.c kill.c\
 	ln.c ls.c mkdir.c rm.c stressfs.c usertests.c wc.c zombie.c\
-	test_1_p1b.c test_2_p1b.c\
+	sched_test.c test_1_p1b.c test_2_p1b.c ps.c\
 	printf.c umalloc.c\
 	README dot-bochsrc *.pl toc.* runoff runoff1 runoff.list\
 	.gdbinit.tmpl gdbutil\
