@@ -1,11 +1,12 @@
-#include "types.h"
-#include "x86.h"
-#include "defs.h"
 #include "date.h"
-#include "param.h"
+#include "defs.h"
 #include "memlayout.h"
 #include "mmu.h"
+#include "param.h"
 #include "proc.h"
+#include "pstat.h"
+#include "types.h"
+#include "x86.h"
 
 int
 sys_fork(void)
@@ -88,4 +89,21 @@ sys_uptime(void)
   xticks = ticks;
   release(&tickslock);
   return xticks;
+}
+
+int
+sys_settickets(void)
+{
+  int n;
+
+  if ((argint(0, &n) < 0) || n < 1)
+    return -1;
+
+  return settickets(n);
+}
+
+int
+sys_getpinfo(void)
+{
+    return getpinfo();
 }

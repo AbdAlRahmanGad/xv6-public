@@ -1,15 +1,17 @@
-#include "types.h"
+#include "proc.h"
 #include "defs.h"
-#include "param.h"
 #include "memlayout.h"
 #include "mmu.h"
-#include "x86.h"
-#include "proc.h"
+#include "param.h"
+#include "pstat.h"
 #include "spinlock.h"
+#include "types.h"
+#include "x86.h"
 
 struct {
   struct spinlock lock;
   struct proc proc[NPROC];
+  struct pstat pstate;
 } ptable;
 
 static struct proc *initproc;
@@ -88,7 +90,8 @@ allocproc(void)
 found:
   p->state = EMBRYO;
   p->pid = nextpid++;
-
+  p->tickets = 1;
+  p->ticketsleft = 1;
   release(&ptable.lock);
 
   // Allocate kernel stack.
@@ -199,6 +202,7 @@ fork(void)
   np->sz = curproc->sz;
   np->parent = curproc;
   *np->tf = *curproc->tf;
+  np->tickets = curproc->tickets;
 
   // Clear %eax so that fork returns 0 in the child.
   np->tf->eax = 0;
@@ -343,9 +347,15 @@ scheduler(void)
       switchuvm(p);
       p->state = RUNNING;
 
+      ptable.pstate.inuse[p - ptable.proc] = 1;
+      ptable.pstate.tickets[p - ptable.proc] = p->tickets;
+      ptable.pstate.pid[p - ptable.proc] = p->pid;
+
       swtch(&(c->scheduler), p->context);
       switchkvm();
 
+      ptable.pstate.inuse[p - ptable.proc] = 0;
+      ptable.pstate.ticks[p - ptable.proc] += p->tickets - p->ticketsleft;
       // Process is done running for now.
       // It should have changed its p->state before coming back.
       c->proc = 0;
@@ -379,6 +389,54 @@ sched(void)
   intena = mycpu()->intena;
   swtch(&p->context, mycpu()->scheduler);
   mycpu()->intena = intena;
+}
+
+int
+settickets(int tickets)
+{
+  if (tickets > 0) {
+    myproc()->tickets = tickets;
+    myproc()->ticketsleft = tickets;
+    return 0;
+  }
+  return -1;
+}
+
+int
+getpinfo(void)
+{
+  struct proc *p;
+  acquire(&ptable.lock);
+  for (p = ptable.proc; p < &ptable.proc[NPROC]; p++) {
+    if (p->state == UNUSED)
+      continue;
+    cprintf("pid: %d\n", ptable.pstate.pid[p - ptable.proc]);
+    switch (p->state) {
+    case EMBRYO:
+      cprintf("state: EMBRYO\n");
+      break;
+    case SLEEPING:
+      cprintf("state: SLEEPING\n");
+      break;
+    case RUNNABLE:
+      cprintf("state: RUNNABLE\n");
+      break;
+    case RUNNING:
+      cprintf("state: RUNNING\n");
+      break;
+    case ZOMBIE:
+      cprintf("state: ZOMBIE\n");
+      break;
+    }
+    cprintf("tickets every round: %d\n",
+            ptable.pstate.tickets[p - ptable.proc]);
+    cprintf("total ticks: %d\n", ptable.pstate.ticks[p - ptable.proc]);
+    cprintf("process inuse ? : %s\n",
+            ptable.pstate.inuse[p - ptable.proc] ? "yes" : "no");
+  }
+  release(&ptable.lock);
+
+  return 0;
 }
 
 // Give up the CPU for one scheduling round.
