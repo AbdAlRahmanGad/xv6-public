@@ -105,14 +105,18 @@ trap(struct trapframe *tf)
   if (myproc() && myproc()->state == RUNNING &&
       tf->trapno == T_IRQ0 + IRQ_TIMER) {
     myproc()->ticketsleft--;
+#ifdef TICKETS
     cprintf("\n\tafter myproc()->ticketsleft-- name : %s pid: %d total "
             "tickets: %d tickets left %d \n",
             myproc()->name, myproc()->pid, myproc()->tickets,
             myproc()->ticketsleft);
+#endif
     if (myproc()->ticketsleft <= 0) {
       myproc()->ticketsleft = myproc()->tickets;
+#ifdef TICKETS
       cprintf("\n\tpname: %s pid: %d yield done\n", myproc()->name,
               myproc()->pid);
+#endif
       yield();
     }
   }

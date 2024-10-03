@@ -26,6 +26,9 @@ int uptime(void);
 int getreadcount(void);
 int settickets(int);
 int getpinfo(void);
+int clone(void(*)(void *, void *), void *, void *, void *);
+int create_thread(void(*)(void *, void *), void *, void *);
+int join(void **);
 
 // ulib.c
 int stat(const char*, struct stat*);
