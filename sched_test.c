@@ -1,6 +1,7 @@
-#include "stat.h"
 #include "types.h"
+#include "stat.h"
 #include "user.h"
+
 // sched_test 5 100
 
 int main(int argc, char *argv[]) {
