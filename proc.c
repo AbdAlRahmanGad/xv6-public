@@ -224,6 +224,86 @@ fork(void)
 
   return pid;
 }
+int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
+    int i, pid;
+    struct proc *np; // new process
+    struct proc *curproc = myproc();
+
+    // Allocate process.
+    if((np = allocproc()) == 0){
+        return -1;
+    }
+    // Copy process state from proc.
+    np->pgdir = curproc->pgdir;
+    np->sz = curproc->sz;
+    np->parent = curproc;
+    *np->tf = *curproc->tf;
+    np->tickets = curproc->tickets;
+
+
+// asm code for adding arguments to the stack of the new process
+//    sub    $0xc,%esp
+//    push   $0x2
+//    push   $0x1
+
+    cprintf("clone\n");
+    np->stack = stack;
+    np->tf->eax = 0;
+    np->tf->eip = fcn;
+#ifdef THREADS
+    cprintf("fcn: %d\n", fcn);
+    cprintf("np->tf->eip: %d\n", np->tf->eip);
+#endif
+    np->tf->esp = stack;
+#ifdef THREADS
+    cprintf("stack: %d\n", stack);
+    cprintf("np->tf->esp: %d\n", np->tf->esp);
+#endif
+    np->tf->esp = np->tf->esp + PGSIZE;
+#ifdef THREADS
+    cprintf("np->tf->esp: %d\n", np->tf->esp);
+#endif
+
+    np->tf->esp = np->tf->esp - 4;
+    *((uint*)(np->tf->esp)) = (uint *)arg2;
+
+#ifdef THREADS
+    cprintf("np->tf->esp: %d\n", (uint)np->tf->esp);
+#endif
+
+    np->tf->esp = np->tf->esp - 4;
+    *((uint*)(np->tf->esp)) = (uint *)arg1;
+
+#ifdef THREADS
+    cprintf("np->tf->esp: %d\n", (uint)np->tf->esp);
+#endif
+
+    np->tf->esp = np->tf->esp - 4;
+    *(uint*)np->tf->esp = 0xFFFFFFF;
+
+#ifdef THREADS
+    cprintf("np->tf->esp: %d\n", np->tf->esp);
+#endif
+
+    for(i = 0; i < NOFILE; i++)
+        if(curproc->ofile[i])
+            np->ofile[i] = filedup(curproc->ofile[i]);
+    np->cwd = idup(curproc->cwd);
+
+    safestrcpy(np->name, curproc->name, sizeof(curproc->name));
+
+    pid = np->pid;
+
+    acquire(&ptable.lock);
+
+    np->state = RUNNABLE;
+
+    release(&ptable.lock);
+
+    return pid;
+
+}
+
 
 // Exit the current process.  Does not return.
 // An exited process remains in the zombie state
@@ -313,6 +393,48 @@ wait(void)
     // Wait for children to exit.  (See wakeup1 call in proc_exit.)
     sleep(curproc, &ptable.lock);  //DOC: wait-sleep
   }
+}
+
+int
+join(void **stack)
+{
+    struct proc *p;
+    int havekids, pid;
+    struct proc *curproc = myproc();
+
+    acquire(&ptable.lock);
+    for(;;){
+        // Scan through table looking for exited children.
+        havekids = 0;
+        for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+            if(p->parent != curproc)
+                continue;
+            havekids = 1;
+            if(p->state == ZOMBIE){
+                // Found one.
+                pid = p->pid;
+                kfree(p->kstack);
+                *stack = p->stack;
+                p->kstack = 0;
+                p->pid = 0;
+                p->parent = 0;
+                p->name[0] = 0;
+                p->killed = 0;
+                p->state = UNUSED;
+                release(&ptable.lock);
+                return pid;
+            }
+        }
+
+        // No point waiting if we don't have any children.
+        if(!havekids || curproc->killed){
+            release(&ptable.lock);
+            return -1;
+        }
+
+        // Wait for children to exit.  (See wakeup1 call in proc_exit.)
+        sleep(curproc, &ptable.lock);  //DOC: wait-sleep
+    }
 }
 
 //PAGEBREAK: 42

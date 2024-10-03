@@ -2,6 +2,7 @@
 #include "stat.h"
 #include "fcntl.h"
 #include "user.h"
+#include "mmu.h"
 #include "x86.h"
 
 char*
@@ -47,6 +48,39 @@ strchr(const char *s, char c)
     if(*s == c)
       return (char*)s;
   return 0;
+}
+
+int
+create_thread(void(*start_routine)(void *, void *), void *arg1, void *arg2)
+{
+  void *stack;
+  stack = malloc(PGSIZE);
+  if (stack == 0) {
+    return -1;
+  }
+  return clone((void(*)(void *, void *))start_routine, arg1, arg2, stack);
+}
+
+int
+join_thread(void)
+{
+    void **stack;
+    int killed_pid = join(stack);
+
+#ifdef THREADS
+    printf(1, "stack = %d\n", *stack);
+    printf(1, "stack = %d\n", (*stack + PGSIZE - 4));
+#endif
+    if (*stack != 0) {
+        free(*stack);
+        *stack = 0;
+    }
+#ifdef THREADS
+    printf(1, "stack = %d\n", *stack);
+    printf(1, "stack = %d\n", (*stack + PGSIZE - 4));
+#endif
+
+    return killed_pid;
 }
 
 char*

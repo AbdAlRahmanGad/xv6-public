@@ -8,9 +8,23 @@ See their [git](https://github.com/remzi-arpacidusseau/ostep-projects) for more 
 <br><br>
 - add ticket scheduler and `ps` system call [commit link](https://github.com/AbdAlRahmanGad/xv6-public/commit/35d614d4bb1a37ed78c9f85460abc3d21ea238d8)
 
+### debugging ticket scheduler
+
+run makefile with TICKETS=1 to enable the ticket scheduler extra printf for debugging.
+```makefile
+ TICKETS=1 make qemu
+```
+
+### debugging threads
+
+run makefile with THREADS=1 to enable threads extra printf for debugging.
+```makefile
+ THREADS=1 make qemu
+```
+    
 test files names: `test_1_p1b.c` `test_2_p1b.c` `sched_test.c` `ps.c`<br><br>
 note: I added the file to the MakeFile to make it easy to test, 
-so all you have to do is build the `xv6` and inside of it type `test_1_p1b` or `test_2_p1b.c`, etc.
+so all you have to do is build the `xv6` and inside of it type `sched_test` or `ps`, etc.
 ### About XV6
 
 xv6 is a re-implementation of Dennis Ritchie's and Ken Thompson's Unix
