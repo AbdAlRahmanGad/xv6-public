@@ -4,6 +4,7 @@
 #include "user.h"
 #include "mmu.h"
 #include "x86.h"
+#include "lock.h"
 
 char*
 strcpy(char *s, const char *t)
@@ -71,16 +72,33 @@ join_thread(void)
     printf(1, "stack = %d\n", *stack);
     printf(1, "stack = %d\n", (*stack + PGSIZE - 4));
 #endif
-    if (*stack != 0) {
-        free(*stack);
-        *stack = 0;
-    }
-#ifdef THREADS
-    printf(1, "stack = %d\n", *stack);
-    printf(1, "stack = %d\n", (*stack + PGSIZE - 4));
-#endif
 
     return killed_pid;
+}
+
+static inline int fetch_and_add(int* variable, int value)
+{
+    __asm__ volatile("lock; xaddl %0, %1"
+            : "+r" (value), "+m" (*variable) // input + output
+            : // No input-only
+            : "memory"
+            );
+    return value;
+}
+
+void lock_init (struct lock_t *lock) {
+  lock->turn = 0;
+}
+void acquire(struct lock_t *lock) {
+
+    while (xchg(&lock->turn, 1) != 0)
+                ;    // spin
+
+}
+void release(struct lock_t *lock) {
+    xchg(&lock->turn, 0);
+    __sync_synchronize();
+//    printf(1, "lock->turn %d\n", lock->turn);
 }
 
 char*

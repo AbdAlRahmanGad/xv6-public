@@ -293,7 +293,7 @@ int clone(void(*fcn)(void *, void *), void *arg1, void *arg2, void *stack){
     safestrcpy(np->name, curproc->name, sizeof(curproc->name));
 
     pid = np->pid;
-
+    cprintf("p->parent->pid: %d\n", np->parent->pid);
     acquire(&ptable.lock);
 
     np->state = RUNNABLE;
@@ -312,16 +312,26 @@ void
 exit(void)
 {
   struct proc *curproc = myproc();
+//  int number_of_brothres = -1;
   struct proc *p;
   int fd;
 
   if(curproc == initproc)
     panic("init exiting");
 
-  // Close all open files.
+    acquire(&ptable.lock);
+    for(p = ptable.proc; p < &ptable.proc[NPROC]; p++){
+        if(p->parent == curproc->parent){
+//            number_of_brothres++;
+        }
+    }
+    release(&ptable.lock);
+
+// Close all open files if it's the last thread using them
   for(fd = 0; fd < NOFILE; fd++){
     if(curproc->ofile[fd]){
-      fileclose(curproc->ofile[fd]);
+//      if(number_of_brothres <= 0)
+        fileclose(curproc->ofile[fd]);
       curproc->ofile[fd] = 0;
     }
   }
@@ -380,6 +390,9 @@ wait(void)
         p->killed = 0;
         p->state = UNUSED;
         release(&ptable.lock);
+#ifdef THREADS
+        cprintf("pid: %d\n", pid);
+#endif
         return pid;
       }
     }
@@ -415,8 +428,10 @@ join(void **stack)
                 pid = p->pid;
                 kfree(p->kstack);
                 *stack = p->stack;
+                p->stack = 0;
                 p->kstack = 0;
                 p->pid = 0;
+                p->pgdir = 0;
                 p->parent = 0;
                 p->name[0] = 0;
                 p->killed = 0;
